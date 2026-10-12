@@ -1,0 +1,176 @@
+/* Крестики-нолики в консоли для двух игроков (на одном компьютере).*/
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_SIZE 5
+#define EMPTY ' '
+
+char board[MAX_SIZE][MAX_SIZE]; /* игровое поле */
+int width;                      /* ширина поля (число столбцов) */
+int height;                     /* высота поля (число строк) */
+
+/* Очистка буфера ввода, если пользователь ввёл не число */
+void clear_input(void)
+{
+    int ch;
+    while ((ch = getchar()) != '\n' && ch != EOF) {
+    }
+}
+
+/* Просит ввести число от min до max, пока не введут правильно */
+int read_number(const char* text, int min, int max)
+{
+    int n;
+
+    while (1) {
+        printf("%s (%d-%d): ", text, min, max);
+        if (scanf("%d", &n) == 1 && n >= min && n <= max) {
+            return n;
+        }
+        if (feof(stdin)) {
+            printf("\nВвод закончился, выход.\n");
+            exit(0);
+        }
+        printf("Неверный ввод, попробуйте ещё раз.\n");
+        clear_input();
+    }
+}
+
+/* Заполняем поле пустыми клетками */
+void init_board(void)
+{
+    int r, c;
+    for (r = 0; r < height; r++) {
+        for (c = 0; c < width; c++) {
+            board[r][c] = EMPTY;
+        }
+    }
+}
+
+/* Рисуем поле */
+void print_board(void)
+{
+    int r, c;
+
+    printf("\n    ");
+    for (c = 0; c < width; c++) {
+        printf(" %d  ", c + 1);
+    }
+    printf("\n");
+
+    for (r = 0; r < height; r++) {
+        printf("  ");
+        for (c = 0; c < width; c++) {
+            printf("+---");
+        }
+        printf("+\n");
+
+        printf("%d ", r + 1);
+        for (c = 0; c < width; c++) {
+            printf("| %c ", board[r][c]);
+        }
+        printf("|\n");
+    }
+
+    printf("  ");
+    for (c = 0; c < width; c++) {
+        printf("+---");
+    }
+    printf("+\n\n");
+}
+
+/*
+ * Проверяем линию: начиная с клетки (r, c), идём в направлении (dr, dc)
+ * и смотрим, что подряд len клеток заняты символом player.
+ */
+int check_line(int r, int c, int dr, int dc, int len, char player)
+{
+    int i;
+    int rr, cc;
+
+    for (i = 0; i < len; i++) {
+        rr = r + dr * i;
+        cc = c + dc * i;
+
+        /* вышли за границы поля */
+        if (rr < 0 || rr >= height || cc < 0 || cc >= width) {
+            return 0;
+        }
+        /* в клетке не наш символ */
+        if (board[rr][cc] != player) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/* Проверка победы игрока player */
+int is_win(char player)
+{
+    int r, c;
+    int diag_len = (width < height) ? width : height;
+
+    for (r = 0; r < height; r++) {
+        for (c = 0; c < width; c++) {
+            /* горизонталь: нужно заполнить всю строку */
+            if (check_line(r, c, 0, 1, width, player)) return 1;
+            /* вертикаль: нужно заполнить весь столбец */
+            if (check_line(r, c, 1, 0, height, player)) return 1;
+            /* диагональ вниз-вправо */
+            if (check_line(r, c, 1, 1, diag_len, player)) return 1;
+            /* диагональ вниз-влево */
+            if (check_line(r, c, 1, -1, diag_len, player)) return 1;
+        }
+    }
+    return 0;
+}
+
+int main(void)
+{
+    char player = 'X';
+    int moves = 0;
+    int r, c;
+
+    printf("=== Крестики-нолики ===\n");
+    width = read_number("Ширина поля (столбцов)", 3, MAX_SIZE);
+    height = read_number("Высота поля (строк)", 3, MAX_SIZE);
+
+    init_board();
+
+    while (1) {
+        print_board();
+        printf("Ходит игрок %c\n", player);
+
+        /* вводим строку и столбец, пока не выберут свободную клетку */
+        while (1) {
+            r = read_number("Строка", 1, height) - 1;
+            c = read_number("Столбец", 1, width) - 1;
+
+            if (board[r][c] == EMPTY) {
+                break;
+            }
+            printf("Эта клетка занята, выберите другую.\n");
+        }
+
+        board[r][c] = player;
+        moves++;
+
+        if (is_win(player)) {
+            print_board();
+            printf("Победил игрок %c!\n", player);
+            break;
+        }
+
+        if (moves == width * height) {
+            print_board();
+            printf("Ничья!\n");
+            break;
+        }
+
+        /* передаём ход другому игроку */
+        player = (player == 'X') ? 'O' : 'X';
+    }
+
+    return 0;
+}
